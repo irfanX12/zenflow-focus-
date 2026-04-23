@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenFlow — Focus Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ===== VARIABLES ===== */
+:root {
+  --bg-base: #05091a;
+  --glass: rgba(255,255,255,0.065);
+  --glass-border: rgba(255,255,255,0.12);
+  --glass-hover: rgba(255,255,255,0.10);
+  --glass-deep: rgba(5,9,26,0.6);
+  --accent-green: #4fffb0;
+  --accent-purple: #b57bee;
+  --accent-blue: #60d0ff;
+  --accent-amber: #ffd060;
+  --accent-red: #ff6b6b;
+  --text: #e8eeff;
+  --text-muted: rgba(232,238,255,0.45);
+  --shadow: 0 12px 40px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3);
+  --radius: 20px;
+  --radius-sm: 12px;
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; font-family: 'Syne', sans-serif; color: var(--text); }
+button { outline: none; }
+
+/* ===== BACKGROUND ===== */
+#bg-solid {
+  position: fixed; inset: 0; z-index: 0;
+  background: var(--bg-base);
+  transition: background 1s ease;
+}
+#bg-image {
+  position: fixed; inset: 0; z-index: 1;
+  background-size: cover; background-position: center;
+  opacity: 0; transition: opacity 1s ease;
+}
+#bg-image.show { opacity: 1; }
+
+/* ===== AURORA LAYERS ===== */
+.aurora { position: fixed; inset: 0; z-index: 2; pointer-events: none; mix-blend-mode: screen; }
+.a1 {
+  background: radial-gradient(ellipse 90% 55% at 15% 35%, rgba(79,255,176,0.5) 0%, transparent 65%);
+  animation: a1 14s ease-in-out infinite alternate;
+  opacity: 0.30;
+}
+.a2 {
+  background: radial-gradient(ellipse 70% 55% at 82% 65%, rgba(181,123,238,0.55) 0%, transparent 65%);
+  animation: a2 17s ease-in-out infinite alternate;
+  opacity: 0.28;
+}
+.a3 {
+  background: radial-gradient(ellipse 65% 40% at 50% 10%, rgba(96,208,255,0.4) 0%, transparent 65%);
+  animation: a3 11s ease-in-out infinite alternate;
+  opacity: 0.22;
+}
+.a4 {
+  background: radial-gradient(ellipse 50% 45% at 70% 20%, rgba(255,208,96,0.2) 0%, transparent 65%);
+  animation: a4 19s ease-in-out infinite alternate;
+  opacity: 0.18;
+}
+@keyframes a1 { to { transform: translate(6%, 10%) scale(1.18); } }
+@keyframes a2 { to { transform: translate(-9%, -6%) scale(1.12); } }
+@keyframes a3 { to { transform: translate(4%, 8%) scale(1.25) rotate(8deg); } }
+@keyframes a4 { to { transform: translate(-5%, 12%) scale(1.15); } }
+
+/* ===== STAR CANVAS ===== */
+#stars { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+
+/* ===== MAIN CLOCK ===== */
+#main-clock {
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 5; text-align: center;
+  pointer-events: none;
+}
+.clock-time {
+  font-family: 'Orbitron', monospace;
+  font-size: clamp(56px, 9vw, 112px);
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  background: linear-gradient(160deg, #fff 0%, rgba(232,238,255,0.55) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  filter: drop-shadow(0 0 40px rgba(79,255,176,0.25)) drop-shadow(0 0 80px rgba(79,255,176,0.1));
+  position: relative;
+  display: inline-block;
+}
+.clock-ampm {
+  position: absolute;
+  top: 0.05em;
+  right: -0.55em;
+  font-size: 0.18em;
+  font-weight: 700;
+  font-family: 'Orbitron', monospace;
+  letter-spacing: 0.08em;
+  background: linear-gradient(160deg, #fff 0%, rgba(232,238,255,0.55) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  text-transform: lowercase;
+}
+.clock-date {
+  font-size: 13px; font-weight: 700;
+  letter-spacing: 0.28em; text-transform: uppercase;
+  color: var(--text-muted); margin-top: 10px;
+}
+
+/* ===== DOCK ===== */
+#dock {
+  position: fixed; bottom: 26px; left: 50%;
+  transform: translateX(-50%); z-index: 200;
+  display: flex; gap: 8px; padding: 10px 14px;
+  background: rgba(5,9,26,0.55);
+  backdrop-filter: blur(28px); -webkit-backdrop-filter: blur(28px);
+  border: 1px solid var(--glass-border);
+  border-radius: 26px;
+  box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+}
+.dock-btn {
+  width: 52px; height: 52px; border: none;
+  background: var(--glass); border-radius: 14px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  transition: all 0.22s cubic-bezier(.34,1.56,.64,1);
+  border: 1px solid transparent; position: relative;
+}
+.dock-btn:hover { background: var(--glass-hover); border-color: var(--glass-border); transform: translateY(-5px) scale(1.05); }
+.dock-btn.active { border-color: var(--accent-green); box-shadow: 0 0 16px rgba(79,255,176,0.28); }
+.dock-btn .d-icon { font-size: 22px; line-height: 1; }
+.dock-btn .d-label { font-size: 8px; font-weight: 800; letter-spacing: 0.06em; color: var(--text-muted); text-transform: uppercase; }
+
+/* ===== POPUP BASE ===== */
+.popup {
+  position: fixed; z-index: 10;
+  background: rgba(8,13,38,0.55);
+  backdrop-filter: blur(32px); -webkit-backdrop-filter: blur(32px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  display: none;
+  transform-origin: top left;
+}
+.popup.visible { display: block; animation: popIn 0.32s cubic-bezier(.34,1.56,.64,1) forwards; }
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.88) translateY(14px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+.popup-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px 12px; cursor: grab;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+}
+.popup-header:active { cursor: grabbing; }
+.ph-title { font-size: 10px; font-weight: 800; letter-spacing: 0.28em; text-transform: uppercase; color: var(--text-muted); }
+.popup-close {
+  width: 22px; height: 22px; border: none;
+  background: rgba(255,80,80,0.15); border-radius: 50%;
+  cursor: pointer; font-size: 10px; color: rgba(255,130,130,0.7);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; line-height: 1;
+}
+.popup-close:hover { background: rgba(255,80,80,0.45); color: #fff; transform: scale(1.1); }
+.popup-body { padding: 18px; }
+
+/* ===== BUTTONS ===== */
+.btn {
+  border: none; border-radius: 11px; cursor: pointer;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px;
+  padding: 9px 18px; transition: all 0.18s;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.btn-primary { background: var(--accent-green); color: #030d09; }
+.btn-primary:hover { filter: brightness(1.12); transform: translateY(-1px); }
+.btn-secondary {
+  background: rgba(255,255,255,0.07); color: var(--text);
+  border: 1px solid var(--glass-border);
+}
+.btn-secondary:hover { background: rgba(255,255,255,0.13); }
+.btn-icon { width: 38px; height: 38px; padding: 0; font-size: 16px; }
+.btn-purple { background: var(--accent-purple); color: #1a0a2e; }
+.btn-purple:hover { filter: brightness(1.12); transform: translateY(-1px); }
+
+/* ===== GLASS INPUT ===== */
+.glass-input {
+  background: rgba(255,255,255,0.055);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 10px 14px;
+  color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px;
+  outline: none; transition: all 0.2s; width: 100%;
+}
+.glass-input::placeholder { color: var(--text-muted); }
+.glass-input:focus { border-color: var(--accent-green); box-shadow: 0 0 0 3px rgba(79,255,176,0.11); }
+
+/* ===== FLIP CLOCK (POMODORO) ===== */
+#pop-pomo { width: 370px; }
+
+.flip-clock {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; padding: 16px 0 12px;
+  perspective: 400px;
+}
+.flip-group { display: flex; gap: 5px; }
+
+.flip-digit {
+  width: 66px; height: 90px; position: relative;
+  border-radius: 12px;
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.09);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+/* Center divider line */
+.flip-digit::after {
+  content: '';
+  position: absolute; top: 50%; left: 0; right: 0;
+  height: 2px; z-index: 10;
+  background: rgba(0,0,0,0.6);
+  box-shadow: 0 1px 1px rgba(255,255,255,0.04);
+}
+
+/* Shared digit text styling */
+.flip-digit span {
+  font-family: 'Orbitron', monospace;
+  font-size: 54px; font-weight: 700;
+  color: var(--text);
+  height: 90px; line-height: 90px;
+  display: block; text-align: center; width: 100%;
+  text-shadow: 0 0 20px rgba(79,255,176,0.2);
+}
+
+.fd-top {
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(18,24,60,0.95) 0%, rgba(14,18,50,0.95) 100%);
+  border-radius: 12px 12px 0 0;
+}
+/* Top half shows top of the digit naturally — span starts at top */
+
+.fd-bottom {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(10,13,38,0.95) 0%, rgba(14,20,52,0.95) 100%);
+  border-radius: 0 0 12px 12px;
+}
+/* Bottom half: shift span up by 50% so bottom portion of digit is visible */
+.fd-bottom span {
+  margin-top: -45px;
+}
+
+/* Fold flap (animated) — shows OLD digit folding down from top */
+.fd-flap {
+  position: absolute; top: 0; left: 0; right: 0; height: 50%;
+  overflow: hidden; transform-origin: bottom center; z-index: 5;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(180deg, rgba(22,30,72,0.98) 0%, rgba(16,21,58,0.98) 100%);
+  backface-visibility: hidden;
+  opacity: 0; /* Hidden by default — only visible during flip animation */
+}
+.fd-flap.flip-anim { animation: flapDown 0.3s ease-in forwards; }
+@keyframes flapDown {
+  0%   { transform: rotateX(0deg);   box-shadow: none; }
+  100% { transform: rotateX(-90deg); box-shadow: 0 12px 30px rgba(0,0,0,0.7); }
+}
+
+/* Back reveal flap — shows NEW digit rising up from bottom */
+.fd-reveal {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 50%;
+  overflow: hidden; transform-origin: top center; z-index: 4;
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(180deg, rgba(10,13,38,0.98) 0%, rgba(14,20,52,0.98) 100%);
+  transform: rotateX(90deg); backface-visibility: hidden;
+}
+.fd-reveal span {
+  margin-top: -45px;
+}
+.fd-reveal.reveal-anim { animation: revealUp 0.3s ease-out 0.3s forwards; }
+@keyframes revealUp {
+  0%   { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+.flip-colon {
+  font-family: 'Orbitron', monospace; font-size: 50px; font-weight: 700;
+  color: var(--accent-green); line-height: 1; margin-bottom: 2px;
+  animation: colonBlink 1s step-end infinite;
+  transition: color 0.4s;
+}
+@keyframes colonBlink { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+
+/* Mode indicator banner */
+.pomo-label {
+  text-align: center; font-size: 13px; font-weight: 800;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--accent-green); margin-bottom: 14px;
+  padding: 7px 18px;
+  background: rgba(79,255,176,0.08);
+  border: 1px solid rgba(79,255,176,0.18);
+  border-radius: 30px;
+  display: inline-block;
+  transition: all 0.4s;
+}
+.pomo-label-wrap {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.pomo-label.mode-focus {
+  color: var(--accent-green);
+  background: rgba(79,255,176,0.08);
+  border-color: rgba(79,255,176,0.22);
+  box-shadow: 0 0 16px rgba(79,255,176,0.12);
+}
+.pomo-label.mode-short {
+  color: var(--accent-blue);
+  background: rgba(96,208,255,0.08);
+  border-color: rgba(96,208,255,0.22);
+  box-shadow: 0 0 16px rgba(96,208,255,0.12);
+}
+.pomo-label.mode-long {
+  color: var(--accent-purple);
+  background: rgba(181,123,238,0.08);
+  border-color: rgba(181,123,238,0.22);
+  box-shadow: 0 0 16px rgba(181,123,238,0.12);
+}
+
+.pomo-modes { display: flex; justify-content: center; gap: 6px; margin-bottom: 14px; }
+.mode-pill {
+  padding: 6px 15px; border-radius: 20px; border: 1px solid var(--glass-border);
+  background: transparent; color: var(--text-muted);
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+  cursor: pointer; transition: all 0.22s;
+}
+.mode-pill:hover { background: var(--glass-hover); color: var(--text); }
+.mode-pill.active-focus { background: var(--accent-green); color: #030d09; border-color: transparent; box-shadow: 0 0 12px rgba(79,255,176,0.3); }
+.mode-pill.active-short { background: var(--accent-blue); color: #030d12; border-color: transparent; box-shadow: 0 0 12px rgba(96,208,255,0.3); }
+.mode-pill.active-long { background: var(--accent-purple); color: #1a0a2e; border-color: transparent; box-shadow: 0 0 12px rgba(181,123,238,0.3); }
+
+.pomo-btns { display: flex; justify-content: center; gap: 10px; }
+.session-dots { display: flex; justify-content: center; gap: 8px; margin-top: 16px; }
+.sdot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(255,255,255,0.13); transition: all 0.35s;
+}
+.sdot.done { background: var(--accent-green); box-shadow: 0 0 8px rgba(79,255,176,0.5); }
+.sdot.active { background: var(--accent-amber); box-shadow: 0 0 10px rgba(255,208,96,0.6); transform: scale(1.2); }
+
+/* ===== STOPWATCH ===== */
+#pop-sw { width: 290px; }
+.sw-display {
+  text-align: center; padding: 16px 0 12px;
+  font-family: 'Orbitron', monospace; font-size: 44px; font-weight: 700;
+  color: var(--text); letter-spacing: 0.05em;
+}
+.sw-display .sw-ms { font-size: 22px; color: var(--text-muted); }
+.sw-btns { display: flex; justify-content: center; gap: 10px; }
+.laps { max-height: 150px; overflow-y: auto; margin-top: 14px; display: flex; flex-direction: column; gap: 5px; }
+.lap-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 7px 12px; background: rgba(255,255,255,0.04);
+  border-radius: 9px; font-size: 12px;
+  animation: slideIn 0.22s ease;
+}
+.lap-n { color: var(--accent-blue); font-weight: 700; font-family: 'Orbitron', monospace; font-size: 11px; }
+.lap-t { font-family: 'Orbitron', monospace; font-size: 12px; color: var(--text); }
+
+/* ===== TODO ===== */
+#pop-todo { width: 315px; }
+.todo-add { display: flex; gap: 8px; margin-bottom: 14px; }
+.todo-list { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.todo-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 12px; background: rgba(255,255,255,0.04);
+  border-radius: var(--radius-sm); border: 1px solid transparent;
+  transition: all 0.2s; animation: slideIn 0.24s ease;
+}
+.todo-item:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.08); }
+@keyframes slideIn { from{opacity:0;transform:translateX(-12px);} to{opacity:1;transform:translateX(0);} }
+.todo-item.done .todo-txt { text-decoration: line-through; color: var(--text-muted); }
+.todo-chk {
+  width: 20px; height: 20px; border-radius: 6px; flex-shrink: 0; cursor: pointer;
+  border: 2px solid rgba(255,255,255,0.2); background: transparent;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; font-size: 11px; font-weight: 800; color: transparent;
+}
+.todo-chk.on { background: var(--accent-green); border-color: var(--accent-green); color: #030d09; }
+.todo-txt { flex: 1; font-size: 13px; color: var(--text); cursor: pointer; line-height: 1.4; }
+.todo-del {
+  width: 24px; height: 24px; border: none; background: transparent;
+  color: rgba(255,100,100,0.35); cursor: pointer; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 6px; transition: all 0.2s; flex-shrink: 0;
+}
+.todo-del:hover { color: #ff6b6b; background: rgba(255,80,80,0.1); }
+.todo-footer {
+  display: flex; justify-content: space-between;
+  padding-top: 10px; font-size: 11px; color: var(--text-muted); font-weight: 600;
+}
+.todo-empty { text-align: center; color: var(--text-muted); font-size: 12px; padding: 20px 0; }
+
+/* ===== NOTES ===== */
+#pop-notes { width: 330px; }
+.notes-ta {
+  width: 100%; min-height: 200px; max-height: 350px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-sm); padding: 14px;
+  color: var(--text); font-family: 'Syne', sans-serif; font-size: 13px;
+  line-height: 1.75; outline: none; resize: vertical; transition: all 0.2s;
+}
+.notes-ta::placeholder { color: var(--text-muted); }
+.notes-ta:focus { border-color: var(--accent-purple); box-shadow: 0 0 0 3px rgba(181,123,238,0.11); }
+.notes-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; }
+.notes-count { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+.save-badge { font-size: 11px; color: var(--accent-green); font-weight: 700; opacity: 0; transition: opacity 0.4s; }
+.save-badge.show { opacity: 1; }
+
+/* ===== SETTINGS ===== */
+#pop-settings { width: 340px; }
+.s-section { margin-bottom: 20px; }
+.s-label {
+  display: block; font-size: 10px; font-weight: 800;
+  letter-spacing: 0.25em; text-transform: uppercase;
+  color: var(--accent-purple); margin-bottom: 10px;
+}
+.s-row { display: flex; gap: 8px; }
+.preset-row { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+.preset-swatch {
+  width: 34px; height: 34px; border-radius: 9px; cursor: pointer;
+  border: 2px solid transparent; transition: all 0.2s;
+  background-size: cover; background-position: center;
+}
+.preset-swatch:hover, .preset-swatch.on { border-color: var(--accent-green); transform: scale(1.1); }
+.yt-wrap {
+  margin-top: 12px; border-radius: 12px; overflow: hidden;
+  aspect-ratio: 16/9; background: rgba(0,0,0,0.4); display: none;
+}
+.yt-wrap.show { display: block; }
+.yt-wrap iframe { width: 100%; height: 100%; border: none; }
+.dur-row { display: flex; gap: 8px; }
+.dur-block { flex: 1; }
+.dur-sub { font-size: 10px; color: var(--text-muted); font-weight: 600; margin-bottom: 6px; }
+.dur-input { text-align: center; padding: 8px 10px; }
+
+/* Pomodoro gear button in header */
+.pomo-gear-btn {
+  width: 26px; height: 26px; border: none;
+  background: rgba(255,255,255,0.07); border-radius: 8px;
+  cursor: pointer; font-size: 14px; color: var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s; line-height: 1;
+}
+.pomo-gear-btn:hover { background: rgba(255,255,255,0.13); color: var(--text); }
+.pomo-gear-btn.active { background: rgba(255,208,96,0.15); color: var(--accent-amber); border: 1px solid rgba(255,208,96,0.3); }
+
+/* Pomodoro inline settings panel */
+.pomo-settings-panel { margin-top: 4px; }
+.pomo-settings-divider {
+  height: 1px; background: rgba(255,255,255,0.07);
+  margin: 14px 0 12px;
+}
+.pomo-settings-title {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.22em;
+  text-transform: uppercase; color: var(--accent-amber);
+  margin-bottom: 10px;
+}
+
+/* ===== SCROLLBAR ===== */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+/* ===== NOTIFICATION TOAST ===== */
+#toast {
+  position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-80px);
+  z-index: 9999; padding: 12px 24px;
+  background: rgba(8,13,38,0.85); border: 1px solid var(--accent-green);
+  border-radius: 40px; font-size: 13px; font-weight: 700;
+  color: var(--accent-green); letter-spacing: 0.04em;
+  backdrop-filter: blur(20px); box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  transition: transform 0.4s cubic-bezier(.34,1.56,.64,1), opacity 0.4s;
+  opacity: 0;
+}
+#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+</style>
+</head>
+<body>
+
+<!-- ===== LAYERS ===== -->
+<div id="bg-solid"></div>
+<div id="bg-image"></div>
+<div class="aurora a1"></div>
+<div class="aurora a2"></div>
+<div class="aurora a3"></div>
+<div class="aurora a4"></div>
+<canvas id="stars"></canvas>
+
+<!-- ===== MAIN CLOCK ===== -->
+<div id="main-clock">
+  <div class="clock-time" id="cl-time">00:00:00<span class="clock-ampm" id="cl-ampm" style="display:none"></span></div>
+  <div class="clock-date" id="cl-date"></div>
+</div>
+
+<!-- ===== TOAST ===== -->
+<div id="toast"></div>
+
+<!-- ===== DOCK ===== -->
+<nav id="dock">
+  <button class="dock-btn" id="dbtn-pomo" onclick="togglePop('pomo')">
+    <span class="d-icon">🍅</span><span class="d-label">Focus</span>
+  </button>
+  <button class="dock-btn" id="dbtn-sw" onclick="togglePop('sw')">
+    <span class="d-icon">⏱️</span><span class="d-label">Watch</span>
+  </button>
+  <button class="dock-btn" id="dbtn-todo" onclick="togglePop('todo')">
+    <span class="d-icon">✅</span><span class="d-label">Tasks</span>
+  </button>
+  <button class="dock-btn" id="dbtn-notes" onclick="togglePop('notes')">
+    <span class="d-icon">📝</span><span class="d-label">Notes</span>
+  </button>
+  <button class="dock-btn" id="dbtn-settings" onclick="togglePop('settings')">
+    <span class="d-icon">⚙️</span><span class="d-label">Setup</span>
+  </button>
+</nav>
+
+<!-- ===== POMODORO POPUP ===== -->
+<div class="popup" id="pop-pomo">
+  <div class="popup-header">
+    <span class="ph-title">🍅 &nbsp;Pomodoro Timer</span>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="pomo-gear-btn" id="pomo-gear-btn" onclick="togglePomoSettings()" title="Timer durations">⚙</button>
+      <button class="popup-close" onclick="closePop('pomo')">✕</button>
+    </div>
+  </div>
+  <div class="popup-body">
+    <div class="pomo-modes">
+      <button class="mode-pill active-focus" id="mp-focus" onclick="setPomoMode('focus',this)">Focus</button>
+      <button class="mode-pill" id="mp-short" onclick="setPomoMode('short',this)">Short Break</button>
+      <button class="mode-pill" id="mp-long" onclick="setPomoMode('long',this)">Long Break</button>
+    </div>
+
+    <!-- Flip clock -->
+    <div class="flip-clock">
+      <div class="flip-group">
+        <div class="flip-digit" id="fd-m0">
+          <div class="fd-top"><span>2</span></div>
+          <div class="fd-bottom"><span>2</span></div>
+          <div class="fd-flap"><span>2</span></div>
+          <div class="fd-reveal"><span>2</span></div>
+        </div>
+        <div class="flip-digit" id="fd-m1">
+          <div class="fd-top"><span>5</span></div>
+          <div class="fd-bottom"><span>5</span></div>
+          <div class="fd-flap"><span>5</span></div>
+          <div class="fd-reveal"><span>5</span></div>
+        </div>
+      </div>
+      <div class="flip-colon" id="f-colon">:</div>
+      <div class="flip-group">
+        <div class="flip-digit" id="fd-s0">
+          <div class="fd-top"><span>0</span></div>
+          <div class="fd-bottom"><span>0</span></div>
+          <div class="fd-flap"><span>0</span></div>
+          <div class="fd-reveal"><span>0</span></div>
+        </div>
+        <div class="flip-digit" id="fd-s1">
+          <div class="fd-top"><span>0</span></div>
+          <div class="fd-bottom"><span>0</span></div>
+          <div class="fd-flap"><span>0</span></div>
+          <div class="fd-reveal"><span>0</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pomo-label-wrap">
+      <div class="pomo-label mode-focus" id="pomo-label">🍅 Focus Session</div>
+    </div>
+
+    <div class="pomo-btns">
+      <button class="btn btn-secondary btn-icon" onclick="resetPomo()" title="Reset">↺</button>
+      <button class="btn btn-primary" id="pomo-playbtn" onclick="togglePomo()" style="min-width:86px">▶ Start</button>
+      <button class="btn btn-secondary btn-icon" onclick="skipPomo()" title="Skip">⏭</button>
+    </div>
+
+    <div class="session-dots">
+      <div class="sdot active" id="sdot-1"></div>
+      <div class="sdot" id="sdot-2"></div>
+      <div class="sdot" id="sdot-3"></div>
+      <div class="sdot" id="sdot-4"></div>
+    </div>
+
+    <!-- Inline duration settings panel -->
+    <div id="pomo-settings-panel" class="pomo-settings-panel" style="display:none;">
+      <div class="pomo-settings-divider"></div>
+      <div class="pomo-settings-title">⏱ Timer Durations <span style="font-size:9px;color:var(--text-muted);font-weight:600;">(minutes)</span></div>
+      <div class="dur-row">
+        <div class="dur-block">
+          <div class="dur-sub">Focus</div>
+          <input class="glass-input dur-input" type="number" id="dur-focus" value="25" min="1" max="90" onchange="durChanged()">
+        </div>
+        <div class="dur-block">
+          <div class="dur-sub">Short Break</div>
+          <input class="glass-input dur-input" type="number" id="dur-short" value="5" min="1" max="30" onchange="durChanged()">
+        </div>
+        <div class="dur-block">
+          <div class="dur-sub">Long Break</div>
+          <input class="glass-input dur-input" type="number" id="dur-long" value="15" min="1" max="60" onchange="durChanged()">
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== STOPWATCH POPUP ===== -->
+<div class="popup" id="pop-sw">
+  <div class="popup-header">
+    <span class="ph-title">⏱️ &nbsp;Stopwatch</span>
+    <button class="popup-close" onclick="closePop('sw')">✕</button>
+  </div>
+  <div class="popup-body">
+    <div class="sw-display">
+      <span id="sw-main">00:00</span><span class="sw-ms">.<span id="sw-cs">00</span></span>
+    </div>
+    <div class="sw-btns">
+      <button class="btn btn-secondary btn-icon" onclick="swReset()" title="Reset">↺</button>
+      <button class="btn btn-primary" id="sw-playbtn" onclick="swToggle()" style="min-width:86px">▶ Start</button>
+      <button class="btn btn-secondary btn-icon" onclick="swLap()" title="Lap">🚩</button>
+    </div>
+    <div class="laps" id="laps"></div>
+  </div>
+</div>
+
+<!-- ===== TODO POPUP ===== -->
+<div class="popup" id="pop-todo">
+  <div class="popup-header">
+    <span class="ph-title">✅ &nbsp;Task List</span>
+    <button class="popup-close" onclick="closePop('todo')">✕</button>
+  </div>
+  <div class="popup-body">
+    <div class="todo-add">
+      <input class="glass-input" id="todo-inp" placeholder="Add a new task…" onkeydown="if(event.key==='Enter')addTodo()" style="flex:1">
+      <button class="btn btn-primary btn-icon" onclick="addTodo()" style="font-size:20px;flex-shrink:0">+</button>
+    </div>
+    <div class="todo-list" id="todo-list"></div>
+    <div class="todo-footer">
+      <span id="todo-count">0 tasks</span>
+      <span id="todo-done">0 done</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== NOTES POPUP ===== -->
+<div class="popup" id="pop-notes">
+  <div class="popup-header">
+    <span class="ph-title">📝 &nbsp;Notes</span>
+    <button class="popup-close" onclick="closePop('notes')">✕</button>
+  </div>
+  <div class="popup-body">
+    <textarea class="notes-ta" id="notes-ta" placeholder="Jot down your thoughts, ideas, plans…" oninput="onNotesInput()"></textarea>
+    <div class="notes-foot">
+      <span class="notes-count" id="notes-cnt">0 characters</span>
+      <span class="save-badge" id="save-badge">✓ Saved</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== SETTINGS POPUP ===== -->
+<div class="popup" id="pop-settings">
+  <div class="popup-header">
+    <span class="ph-title">⚙️ &nbsp;Settings</span>
+    <button class="popup-close" onclick="closePop('settings')">✕</button>
+  </div>
+  <div class="popup-body">
+
+    <div class="s-section">
+      <label class="s-label">🕐 Clock Format</label>
+      <div style="display:flex; gap:6px;">
+        <button class="mode-pill active-focus" id="clock-24-btn" onclick="setClockFormat(24)" style="flex:1;">24-hour</button>
+        <button class="mode-pill" id="clock-12-btn" onclick="setClockFormat(12)" style="flex:1;">12-hour</button>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <label class="s-label">🎨 Background</label>
+      <div class="s-row">
+        <input class="glass-input" id="bg-inp" placeholder="Paste image URL…" style="flex:1">
+        <button class="btn btn-primary" onclick="applyBg()" style="flex-shrink:0">Apply</button>
+      </div>
+      <div class="preset-row">
+        <div class="preset-swatch on" style="background:linear-gradient(135deg,#05091a,#0d1a40,#1a0a2e)" title="Aurora Night" onclick="applyPreset(0,this)"></div>
+        <div class="preset-swatch" style="background:linear-gradient(135deg,#071a07,#0a2a10,#07190a)" title="Forest" onclick="applyPreset(1,this)"></div>
+        <div class="preset-swatch" style="background:linear-gradient(135deg,#05050f,#060a20,#04091c)" title="Deep Ocean" onclick="applyPreset(2,this)"></div>
+        <div class="preset-swatch" style="background:linear-gradient(135deg,#1a0505,#2a0a10,#1c0607)" title="Ember" onclick="applyPreset(3,this)"></div>
+        <div class="preset-swatch" style="background:linear-gradient(135deg,#10091a,#1a0d2e,#0d0717)" title="Cosmos" onclick="applyPreset(4,this)"></div>
+        <div class="preset-swatch" style="background:rgba(255,255,255,0.07);display:flex;align-items:center;justify-content:center;font-size:16px" title="Clear custom" onclick="clearBg()">🗑</div>
+      </div>
+    </div>
+
+    <div class="s-section">
+      <label class="s-label">🎵 YouTube Music</label>
+      <div class="s-row">
+        <input class="glass-input" id="yt-inp" placeholder="Paste YouTube link…" style="flex:1">
+        <button class="btn btn-purple" onclick="applyYT()" style="flex-shrink:0">▶ Play</button>
+      </div>
+      <!-- IFrame API player container -->
+      <div id="yt-player-wrap" style="display:none; margin-top:12px; border-radius:12px; overflow:hidden; aspect-ratio:16/9; background:rgba(0,0,0,0.4);">
+        <div id="yt-player" style="width:100%;height:100%;"></div>
+      </div>
+      <!-- Fallback shown when video can't be embedded -->
+      <div id="yt-error-box" style="display:none; margin-top:12px; padding:14px 16px; background:rgba(255,208,96,0.08); border:1px solid rgba(255,208,96,0.25); border-radius:12px; text-align:center;">
+        <div style="font-size:12px; color:var(--accent-amber); font-weight:700; margin-bottom:10px;">⚠️ This video can't be embedded due to its privacy settings.</div>
+        <a id="yt-fallback-link" href="#" target="_blank" rel="noopener" class="btn btn-secondary" style="font-size:12px; text-decoration:none;">↗ Watch on YouTube</a>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===================================================================
+     JAVASCRIPT
+===================================================================== -->
+<script>
+'use strict';
+
+// ─── GLOBAL ─────────────────────────────────────────────────────────
+let zTop = 20;
+
+// ─── STARS ──────────────────────────────────────────────────────────
+(function () {
+  const cv = document.getElementById('stars');
+  const cx = cv.getContext('2d');
+  let stars = [];
+
+  function resize() { cv.width = innerWidth; cv.height = innerHeight; }
+  function init() {
+    stars = Array.from({ length: 140 }, () => ({
+      x: Math.random() * cv.width, y: Math.random() * cv.height,
+      r: Math.random() * 1.4 + 0.2,
+      base: Math.random() * 0.7 + 0.15,
+      offset: Math.random() * Math.PI * 2,
+      speed: Math.random() * 0.6 + 0.2,
+    }));
+  }
+  function draw(t) {
+    cx.clearRect(0, 0, cv.width, cv.height);
+    const ts = t / 1000;
+    for (const s of stars) {
+      const a = s.base + Math.sin(ts * s.speed + s.offset) * 0.15;
+      cx.beginPath();
+      cx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+      cx.fillStyle = `rgba(255,255,255,${Math.max(0, Math.min(1, a))})`;
+      cx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+
+  resize();
+  init();
+  requestAnimationFrame(draw);
+  addEventListener('resize', () => { resize(); init(); });
+})();
+
+// ─── MAIN CLOCK ─────────────────────────────────────────────────────
+let clockIs24 = true;
+
+(function () {
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const tEl = document.getElementById('cl-time');
+  const dEl = document.getElementById('cl-date');
+
+  function tick() {
+    const n = new Date();
+    let h = n.getHours();
+    const m = pad2(n.getMinutes()), s = pad2(n.getSeconds());
+    const ampmEl = document.getElementById('cl-ampm');
+    if (clockIs24) {
+      tEl.childNodes[0].textContent = `${pad2(h)}:${m}:${s}`;
+      ampmEl.style.display = 'none';
+    } else {
+      const ampm = h >= 12 ? 'pm' : 'am';
+      h = h % 12 || 12;
+      tEl.childNodes[0].textContent = `${pad2(h)}:${m}:${s}`;
+      ampmEl.textContent = ampm;
+      ampmEl.style.display = '';
+    }
+    dEl.textContent = `${DAYS[n.getDay()]} · ${MONTHS[n.getMonth()]} ${n.getDate()}, ${n.getFullYear()}`;
+  }
+
+  window._clockTick = tick; // expose for live update on toggle
+  tick();
+  setInterval(tick, 1000);
+})();
+
+function setClockFormat(hrs) {
+  clockIs24 = (hrs === 24);
+  document.getElementById('clock-24-btn').classList.toggle('active-focus', clockIs24);
+  document.getElementById('clock-12-btn').classList.toggle('active-focus', !clockIs24);
+  if (window._clockTick) window._clockTick();
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+// ─── TOAST ──────────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg, color = 'var(--accent-green)') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color;
+  t.style.borderColor = color;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ─── POPUP SYSTEM ───────────────────────────────────────────────────
+const POPUP_DEFAULTS = {
+  pomo:     { top: 70,  left: 50 },
+  sw:       { top: 70,  left: 420 },
+  todo:     { top: 70,  left: 740 },
+  notes:    { top: 360, left: 50 },
+  settings: { top: 360, left: 420 },
+};
+
+// Initialize drag on each popup once
+document.querySelectorAll('.popup').forEach(initDrag);
+
+function initDrag(popup) {
+  const hdr = popup.querySelector('.popup-header');
+  let drag = false, sx, sy, sl, st;
+
+  function startDrag(cx, cy) {
+    drag = true;
+    sx = cx; sy = cy;
+    sl = parseInt(popup.style.left) || 0;
+    st = parseInt(popup.style.top)  || 0;
+    popup.style.zIndex = ++zTop;
+    document.body.style.cursor = 'grabbing';
+  }
+  function moveDrag(cx, cy) {
+    if (!drag) return;
+    const l = Math.max(0, Math.min(innerWidth  - popup.offsetWidth,  sl + cx - sx));
+    const t = Math.max(0, Math.min(innerHeight - popup.offsetHeight, st + cy - sy));
+    popup.style.left = l + 'px';
+    popup.style.top  = t + 'px';
+  }
+  function endDrag() { drag = false; document.body.style.cursor = ''; }
+
+  hdr.addEventListener('mousedown', e => {
+    if (e.target.closest('.popup-close')) return;
+    startDrag(e.clientX, e.clientY);
+    e.preventDefault();
+  });
+  addEventListener('mousemove', e => moveDrag(e.clientX, e.clientY));
+  addEventListener('mouseup', endDrag);
+
+  hdr.addEventListener('touchstart', e => {
+    if (e.target.closest('.popup-close')) return;
+    startDrag(e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  addEventListener('touchmove', e => {
+    if (drag) { moveDrag(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+  }, { passive: false });
+  addEventListener('touchend', endDrag);
+
+  popup.addEventListener('mousedown', () => popup.style.zIndex = ++zTop);
+}
+
+function openPop(name) {
+  const el = document.getElementById(`pop-${name}`);
+  const def = POPUP_DEFAULTS[name];
+  if (!el.style.top) {
+    const t = Math.min(def.top, innerHeight - 200);
+    const l = Math.min(def.left, innerWidth  - 300);
+    el.style.top  = t + 'px';
+    el.style.left = l + 'px';
+  }
+  el.classList.add('visible');
+  el.style.zIndex = ++zTop;
+  document.getElementById(`dbtn-${name}`).classList.add('active');
+}
+
+function closePop(name) {
+  const el = document.getElementById(`pop-${name}`);
+  el.style.transition = 'opacity .18s, transform .18s';
+  el.style.opacity = '0';
+  el.style.transform = 'scale(0.9) translateY(10px)';
+  setTimeout(() => {
+    el.classList.remove('visible');
+    el.style.opacity = '';
+    el.style.transform = '';
+    el.style.transition = '';
+  }, 200);
+  document.getElementById(`dbtn-${name}`).classList.remove('active');
+}
+
+function togglePop(name) {
+  const el = document.getElementById(`pop-${name}`);
+  el.classList.contains('visible') ? closePop(name) : openPop(name);
+}
+
+// ─── FLIP DIGIT ─────────────────────────────────────────────────────
+// Stores current displayed value per digit id
+const fdState = {};
+
+function flipTo(id, newChar) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const old = fdState[id] ?? newChar;
+  fdState[id] = newChar;
+
+  if (old === newChar) return; // nothing to do
+
+  const flap   = el.querySelector('.fd-flap');
+  const reveal = el.querySelector('.fd-reveal');
+  const topSp  = el.querySelector('.fd-top span');
+  const botSp  = el.querySelector('.fd-bottom span');
+  const flapSp = flap.querySelector('span');
+  const revSp  = reveal.querySelector('span');
+
+  // 1) Immediately cancel any running animation
+  flap.classList.remove('flip-anim');
+  reveal.classList.remove('reveal-anim');
+
+  // 2) Setup: flap shows OLD value on top, reveal shows NEW value on bottom
+  flapSp.textContent = old;
+  revSp.textContent  = newChar;
+
+  // 3) fd-top shows NEW digit (hidden behind flap until it folds away)
+  //    fd-bottom keeps OLD digit — reveal animation will cover it in sync
+  topSp.textContent  = newChar;
+  botSp.textContent  = old;
+
+  // 4) Make flap visible (it folds down to reveal fd-top with new digit)
+  flap.style.opacity = '1';
+  flap.style.transform = 'rotateX(0deg)';
+  // Make reveal hidden at start (it unfolds to show fd-bottom)
+  reveal.style.transform = 'rotateX(90deg)';
+  reveal.style.opacity = '1';
+
+  // Force reflow so browser registers the reset
+  void flap.offsetWidth;
+
+  // 5) Start animations
+  flap.classList.add('flip-anim');
+  reveal.classList.add('reveal-anim');
+
+  // 6) After flap folds away, hide it and sync its text to new digit
+  flap.addEventListener('animationend', () => {
+    flap.classList.remove('flip-anim');
+    flapSp.textContent = newChar;   // sync so it matches if it peeks
+    flap.style.opacity = '0';       // hide the flap
+    flap.style.transform = '';
+  }, { once: true });
+
+  // 7) After reveal unfolds, sync bottom layer then clean up
+  reveal.addEventListener('animationend', () => {
+    reveal.classList.remove('reveal-anim');
+    botSp.textContent = newChar;
+    reveal.style.transform = '';
+    reveal.style.opacity = '';
+  }, { once: true });
+}
+
+function setFlipTime(totalSecs) {
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  flipTo('fd-m0', String(Math.floor(m / 10)));
+  flipTo('fd-m1', String(m % 10));
+  flipTo('fd-s0', String(Math.floor(s / 10)));
+  flipTo('fd-s1', String(s % 10));
+}
+
+function forceFlipTime(totalSecs) {
+  const m = Math.floor(totalSecs / 60);
+  const s = totalSecs % 60;
+  const digits = [
+    { id: 'fd-m0', v: String(Math.floor(m / 10)) },
+    { id: 'fd-m1', v: String(m % 10) },
+    { id: 'fd-s0', v: String(Math.floor(s / 10)) },
+    { id: 'fd-s1', v: String(s % 10) },
+  ];
+  for (const { id, v } of digits) {
+    fdState[id] = v;
+    const el = document.getElementById(id);
+    if (!el) continue;
+    el.querySelectorAll('span').forEach(sp => sp.textContent = v);
+    // Ensure flap is hidden and animations are cleared
+    const flap = el.querySelector('.fd-flap');
+    const reveal = el.querySelector('.fd-reveal');
+    if (flap) {
+      flap.classList.remove('flip-anim');
+      flap.style.opacity = '0';
+      flap.style.transform = '';
+    }
+    if (reveal) {
+      reveal.classList.remove('reveal-anim');
+      reveal.style.transform = '';
+      reveal.style.opacity = '';
+    }
+  }
+}
+
+// ─── POMODORO ───────────────────────────────────────────────────────
+const POMO_DURATIONS = { focus: 25 * 60, short: 5 * 60, long: 15 * 60 };
+const POMO_LABELS    = { focus: 'Focus Session', short: 'Short Break 🌿', long: 'Long Break 🌙' };
+const POMO_COLORS    = { focus: 'var(--accent-green)', short: 'var(--accent-blue)', long: 'var(--accent-purple)' };
+
+let pomoMode    = 'focus';
+let pomoRunning = false;
+let pomoTimer   = null;
+let pomoSecs    = 25 * 60;
+let pomoTotal   = 25 * 60;
+let pomoCount   = 0; // completed focus sessions
+
+// Read custom durations
+function getDur(mode) {
+  const map = { focus: 'dur-focus', short: 'dur-short', long: 'dur-long' };
+  return (parseInt(document.getElementById(map[mode]).value) || { focus: 25, short: 5, long: 15 }[mode]) * 60;
+}
+
+function durChanged() {
+  if (!pomoRunning) {
+    pomoSecs  = getDur(pomoMode);
+    pomoTotal = pomoSecs;
+    forceFlipTime(pomoSecs);
+  }
+}
+
+function togglePomoSettings() {
+  const panel = document.getElementById('pomo-settings-panel');
+  const btn   = document.getElementById('pomo-gear-btn');
+  const open  = panel.style.display === 'none' || panel.style.display === '';
+  panel.style.display = open ? 'block' : 'none';
+  btn.classList.toggle('active', open);
+}
+
+function setPomoMode(mode, btn) {
+  pomoMode = mode;
+  // Remove all active-* classes from pills
+  document.querySelectorAll('.mode-pill').forEach(b => {
+    b.classList.remove('active-focus', 'active-short', 'active-long');
+  });
+  btn.classList.add(`active-${mode}`);
+
+  const label = document.getElementById('pomo-label');
+  const modeIcons = { focus: '🍅', short: '🌿', long: '🌙' };
+  label.textContent = `${modeIcons[mode]} ${POMO_LABELS[mode]}`;
+  label.className = `pomo-label mode-${mode}`;
+
+  document.getElementById('f-colon').style.color = POMO_COLORS[mode];
+  resetPomo(false);
+}
+
+function togglePomo() {
+  if (pomoRunning) {
+    clearInterval(pomoTimer);
+    pomoRunning = false;
+    document.getElementById('pomo-playbtn').innerHTML = '▶ Start';
+  } else {
+    pomoRunning = true;
+    document.getElementById('pomo-playbtn').innerHTML = '⏸ Pause';
+    pomoTimer = setInterval(() => {
+      if (pomoSecs <= 0) {
+        clearInterval(pomoTimer);
+        pomoRunning = false;
+        document.getElementById('pomo-playbtn').innerHTML = '▶ Start';
+        onPomoEnd();
+        return;
+      }
+      pomoSecs--;
+      setFlipTime(pomoSecs);
+    }, 1000);
+  }
+}
+
+function resetPomo(showToastMsg = false) {
+  clearInterval(pomoTimer);
+  pomoRunning = false;
+  document.getElementById('pomo-playbtn').innerHTML = '▶ Start';
+  pomoSecs  = getDur(pomoMode);
+  pomoTotal = pomoSecs;
+  forceFlipTime(pomoSecs);
+  if (showToastMsg) showToast('Timer reset');
+}
+
+function skipPomo() {
+  clearInterval(pomoTimer);
+  pomoRunning = false;
+  onPomoEnd();
+}
+
+function onPomoEnd() {
+  playBeep();
+  if (pomoMode === 'focus') {
+    pomoCount++;
+    updateDots();
+    if (pomoCount % 4 === 0) {
+      showToast('🎉 Long break time! You earned it.', 'var(--accent-purple)');
+      setPomoMode('long', document.getElementById('mp-long'));
+    } else {
+      showToast('✅ Focus done! Take a short break.', 'var(--accent-blue)');
+      setPomoMode('short', document.getElementById('mp-short'));
+    }
+  } else {
+    showToast('🍅 Break over — back to focus!', 'var(--accent-green)');
+    setPomoMode('focus', document.getElementById('mp-focus'));
+  }
+}
+
+function updateDots() {
+  const cycle = pomoCount % 4 || 4;
+  for (let i = 1; i <= 4; i++) {
+    const d = document.getElementById(`sdot-${i}`);
+    d.classList.remove('done', 'active');
+    if (i < cycle) d.classList.add('done');
+    else if (i === cycle) d.classList.add('active');
+  }
+}
+
+function playBeep() {
+  try {
+    const ac  = new AudioContext();
+    const osc = ac.createOscillator();
+    const g   = ac.createGain();
+    osc.connect(g); g.connect(ac.destination);
+    osc.frequency.value = 880;
+    g.gain.setValueAtTime(0.25, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ac.currentTime + 0.9);
+    osc.start(); osc.stop(ac.currentTime + 0.9);
+  } catch (e) {}
+}
+
+// Init flip clock display
+forceFlipTime(pomoSecs);
+
+// ─── STOPWATCH ──────────────────────────────────────────────────────
+let swRunning = false, swStart = 0, swAccum = 0, swTicker = null;
+let swLapBase = 0, lapN = 0;
+
+function swFmt(ms) {
+  const s = Math.floor(ms / 1000);
+  return { main: `${pad2(Math.floor(s / 60))}:${pad2(s % 60)}`, cs: pad2(Math.floor((ms % 1000) / 10)) };
+}
+
+function swToggle() {
+  if (swRunning) {
+    clearInterval(swTicker);
+    swAccum += Date.now() - swStart;
+    swRunning = false;
+    document.getElementById('sw-playbtn').innerHTML = '▶ Start';
+  } else {
+    swRunning = true;
+    swStart = Date.now();
+    document.getElementById('sw-playbtn').innerHTML = '⏸ Pause';
+    swTicker = setInterval(() => {
+      const { main, cs } = swFmt(swAccum + Date.now() - swStart);
+      document.getElementById('sw-main').textContent = main;
+      document.getElementById('sw-cs').textContent   = cs;
+    }, 33);
+  }
+}
+
+function swReset() {
+  clearInterval(swTicker);
+  swRunning = false; swAccum = 0; swStart = 0; swLapBase = 0; lapN = 0;
+  document.getElementById('sw-main').textContent = '00:00';
+  document.getElementById('sw-cs').textContent   = '00';
+  document.getElementById('sw-playbtn').innerHTML = '▶ Start';
+  document.getElementById('laps').innerHTML = '';
+}
+
+function swLap() {
+  const total = swAccum + (swRunning ? Date.now() - swStart : 0);
+  if (total === 0) return;
+  lapN++;
+  const lapMs = total - swLapBase;
+  swLapBase = total;
+  const { main, cs } = swFmt(lapMs);
+  const row = document.createElement('div');
+  row.className = 'lap-row';
+  row.innerHTML = `<span class="lap-n">Lap ${lapN}</span><span class="lap-t">${main}.<small>${cs}</small></span>`;
+  const laps = document.getElementById('laps');
+  laps.insertBefore(row, laps.firstChild);
+}
+
+// ─── TODO ────────────────────────────────────────────────────────────
+let todos = JSON.parse(localStorage.getItem('zf-todos') || '[]');
+
+function saveTodos() { localStorage.setItem('zf-todos', JSON.stringify(todos)); }
+
+function renderTodos() {
+  const list = document.getElementById('todo-list');
+  if (!todos.length) {
+    list.innerHTML = '<div class="todo-empty">No tasks yet — add one above ✨</div>';
+  } else {
+    list.innerHTML = '';
+    todos.forEach((t, i) => {
+      const item = document.createElement('div');
+      item.className = `todo-item${t.done ? ' done' : ''}`;
+      item.innerHTML = `
+        <div class="todo-chk${t.done ? ' on' : ''}" onclick="toggleTodo(${i})">${t.done ? '✓' : ''}</div>
+        <span class="todo-txt">${esc(t.text)}</span>
+        <button class="todo-del" onclick="delTodo(${i})">✕</button>
+      `;
+      list.appendChild(item);
+    });
+  }
+  const done = todos.filter(t => t.done).length;
+  document.getElementById('todo-count').textContent = `${todos.length} task${todos.length !== 1 ? 's' : ''}`;
+  document.getElementById('todo-done').textContent  = `${done} done`;
+}
+
+function addTodo() {
+  const inp = document.getElementById('todo-inp');
+  const txt = inp.value.trim();
+  if (!txt) return;
+  todos.unshift({ text: txt, done: false });
+  saveTodos(); renderTodos();
+  inp.value = '';
+}
+
+function toggleTodo(i) { todos[i].done = !todos[i].done; saveTodos(); renderTodos(); }
+function delTodo(i)    { todos.splice(i, 1); saveTodos(); renderTodos(); }
+function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+renderTodos();
+
+// ─── NOTES ──────────────────────────────────────────────────────────
+const notesTA = document.getElementById('notes-ta');
+notesTA.value = localStorage.getItem('zf-notes') || '';
+document.getElementById('notes-cnt').textContent = `${notesTA.value.length} characters`;
+
+let noteTimer;
+function onNotesInput() {
+  const len = notesTA.value.length;
+  document.getElementById('notes-cnt').textContent = `${len} character${len !== 1 ? 's' : ''}`;
+  clearTimeout(noteTimer);
+  noteTimer = setTimeout(() => {
+    localStorage.setItem('zf-notes', notesTA.value);
+    const badge = document.getElementById('save-badge');
+    badge.classList.add('show');
+    setTimeout(() => badge.classList.remove('show'), 2200);
+  }, 750);
+}
+
+// ─── SETTINGS: BACKGROUND ───────────────────────────────────────────
+const PRESETS = [
+  '#05091a',  // Aurora Night (default)
+  '#071a07',  // Forest
+  '#05050f',  // Deep Ocean
+  '#1a0505',  // Ember
+  '#10091a',  // Cosmos
+];
+
+function applyBg() {
+  const url = document.getElementById('bg-inp').value.trim();
+  if (!url) return;
+  const img = new Image();
+  img.onload = () => {
+    const el = document.getElementById('bg-image');
+    el.style.backgroundImage = `url('${url}')`;
+    el.classList.add('show');
+    showToast('✨ Background applied');
+  };
+  img.onerror = () => showToast('⚠️ Could not load image URL', 'var(--accent-amber)');
+  img.src = url;
+}
+
+function clearBg() {
+  const el = document.getElementById('bg-image');
+  el.classList.remove('show');
+  setTimeout(() => { el.style.backgroundImage = ''; }, 1000);
+  document.getElementById('bg-inp').value = '';
+  showToast('Background cleared');
+}
+
+function applyPreset(idx, btn) {
+  document.getElementById('bg-solid').style.background = PRESETS[idx];
+  document.querySelectorAll('.preset-swatch').forEach(s => s.classList.remove('on'));
+  btn.classList.add('on');
+  clearBg();
+}
+
+// ─── SETTINGS: YOUTUBE (IFrame API) ─────────────────────────────────
+let ytPlayer = null;
+let ytAPIReady = false;
+let ytPendingVid = null;
+
+// Inject YouTube IFrame API script
+(function () {
+  const tag = document.createElement('script');
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+})();
+
+function onYouTubeIframeAPIReady() {
+  ytAPIReady = true;
+  if (ytPendingVid) { createYTPlayer(ytPendingVid); ytPendingVid = null; }
+}
+
+function createYTPlayer(vid) {
+  document.getElementById('yt-error-box').style.display = 'none';
+  const wrap = document.getElementById('yt-player-wrap');
+  wrap.style.display = 'block';
+
+  if (ytPlayer) {
+    try { ytPlayer.loadVideoById(vid); return; } catch(e) { ytPlayer = null; }
+  }
+
+  // Reset container (IFrame API replaces the div)
+  document.getElementById('yt-player').innerHTML = '';
+
+  ytPlayer = new YT.Player('yt-player', {
+    height: '100%', width: '100%',
+    videoId: vid,
+    playerVars: { autoplay: 1, rel: 0, modestbranding: 1 },
+    events: {
+      onReady: () => { showToast('🎵 Music playing', 'var(--accent-purple)'); },
+      onError: (e) => {
+        wrap.style.display = 'none';
+        const errBox = document.getElementById('yt-error-box');
+        errBox.style.display = 'block';
+        document.getElementById('yt-fallback-link').href = `https://www.youtube.com/watch?v=${vid}`;
+        showToast('⚠️ Video can\'t be embedded', 'var(--accent-amber)');
+        ytPlayer = null;
+      }
+    }
+  });
+}
+
+function applyYT() {
+  const url = document.getElementById('yt-inp').value.trim();
+  if (!url) return;
+
+  let vid = '';
+  const patterns = [
+    /[?&]v=([^&\s#]+)/,
+    /youtu\.be\/([^?\s#]+)/,
+    /embed\/([^?\s#]+)/,
+    /shorts\/([^?\s#]+)/,
+  ];
+  for (const p of patterns) {
+    const m = url.match(p);
+    if (m) { vid = m[1]; break; }
+  }
+
+  if (!vid) { showToast('⚠️ Invalid YouTube URL', 'var(--accent-amber)'); return; }
+
+  if (ytAPIReady) {
+    createYTPlayer(vid);
+  } else {
+    ytPendingVid = vid;
+    showToast('⏳ Loading player…', 'var(--text-muted)');
+  }
+}
+
+// ─── AUTO OPEN ON LOAD ──────────────────────────────────────────────
+window.addEventListener('load', () => {
+  // Responsive defaults
+  if (innerWidth < 900) {
+    POPUP_DEFAULTS.sw   = { top: 70,  left: Math.min(380, innerWidth - 310) };
+    POPUP_DEFAULTS.todo = { top: 70,  left: Math.min(700, innerWidth - 330) };
+  }
+  setTimeout(() => openPop('pomo'),  80);
+  setTimeout(() => openPop('todo'),  180);
+  setTimeout(() => openPop('notes'), 280);
+});
+</script>
+</body>
+</html>
